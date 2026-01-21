@@ -1,6 +1,13 @@
 import plotly.express as px
 import plotly.graph_objects as go
+import plotly.graph_objects as go
 
+def plot_actual_vs_predicted(y_actual, y_pred):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(y=y_actual, mode='lines', name='Actual'))
+    fig.add_trace(go.Scatter(y=y_pred, mode='lines', name='Predicted'))
+    fig.update_layout(title='Actual vs Predicted', xaxis_title='Index', yaxis_title='Value')
+    return fig
 def plot_histogram(df, column):
     """
     Membuat histogram interaktif menggunakan Plotly.

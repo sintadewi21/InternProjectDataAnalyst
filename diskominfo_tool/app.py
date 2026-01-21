@@ -1,421 +1,382 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+from streamlit_option_menu import option_menu
 from utils import loader, analysis, visualization
 
-# Konfigurasi Halaman
+# --- KONFIGURASI HALAMAN ---
 st.set_page_config(
-    page_title="Tools Analisis Data Diskominfo",
+    page_title="Diskominfo Data Tool",
     page_icon="📊",
     layout="wide"
 )
 
-# --- HEADER & LOGO ---
-col_h1, col_h2, col_h3 = st.columns([1, 6, 1])
+# --- LOAD CUSTOM CSS ---
+def local_css(file_name):
+    with open(file_name, encoding='utf-8') as f:
+        st.markdown(f'<style>{f.read()}</style>', unsafe_allow_html=True)
 
-with col_h1:
-    try:
-        st.image("logo_lamongan.png", width=120)
-    except:
-        st.empty()
+local_css("assets/custom_style.css")
 
-with col_h2:
-    # Judul Utama di Tengah
-    st.markdown("<h1 style='text-align: center;'>Tools Analisis Data Diskominfo</h1>", unsafe_allow_html=True)
-    st.markdown("<p style='text-align: center;'>Aplikasi analisis deskriptif untuk data CSV dan Excel.</p>", unsafe_allow_html=True)
+# --- INISIALISASI SESSION STATE ---
+if 'df' not in st.session_state:
+    st.session_state['df'] = None
 
-with col_h3:
-    try:
-        st.image("logo.png", width=120)
-    except:
-        st.write("*(Logo Diskominfo)*")
-
-st.divider()
-
-# --- UPLOAD SECTION (CENTER) ---
-col_up_le, col_up_mid, col_up_ri = st.columns([1, 2, 1])
-with col_up_mid:
-    st.markdown("### 📂 Upload File")
-    uploaded_file = st.file_uploader("Pilih file CSV atau Excel", type=['csv', 'xlsx', 'xls'])
-    if not uploaded_file:
-        st.info("Format yang didukung: .csv, .xlsx, .xls")
-
-if uploaded_file is not None:
-    # Memuat data
-    df = loader.load_data(uploaded_file)
+# --- SIDEBAR ---
+with st.sidebar:
+    _, col_header, _ = st.columns([0.05, 0.9, 0.05])
     
-    if df is not None:
-        # --- FITUR FILTER (EXPANDER) ---
-        with st.expander("🔍 Filter Data"):
+    with col_header:
+        c1, c2, c3 = st.columns([0.9, 1, 2.1])
         
-            # Opsi untuk filter berdasarkan kolom kategorikal
-            cat_cols = df.select_dtypes(include=['object', 'category']).columns
-            
-            # Kita buat salinan df agar tidak merusak data asli saat filtering bertingkat
-            df_filtered = df.copy()
-            
-            if len(cat_cols) > 0:
-                for col in cat_cols:
-                    # Ambil nilai unik
-                    unique_vals = df[col].unique().tolist()
-                    # Multiselect untuk filter
-                    selected_vals = st.multiselect(
-                        f"Filter: {col}",
-                        options=unique_vals,
-                        default=unique_vals # Default pilih semua
-                    )
-                    
-                    # Terapkan filter
-                    if selected_vals:
-                        df_filtered = df_filtered[df_filtered[col].isin(selected_vals)]
-            
-            st.caption(f"Menampilkan {len(df_filtered)} dari {len(df)} baris data.")
+        with c1:
+            try:
+                st.image("logo_lamongan.png", use_container_width=True)
+            except:
+                st.write("🏛️")
         
-        # Gunakan df_filtered untuk analisis selanjutnya
-        df = df_filtered
+        with c2:
+            try:
+                st.image("logo.png", use_container_width=True)
+            except:
+                st.write("🌐")
         
-        # Menampilkan pesan sukses
-        # st.sidebar.success("File berhasil dimuat & Filter aktif!") # Optional, agar tidak terlalu ramai
-        
-        # Membuat Tabs dengan urutan baru
-        tab_titles = [
-            "📋 Overview Data", 
-            "📈 Statistik Deskriptif", 
-            "🧮 Grouping/Pivot",
-            "📉 Regresi Sederhana", 
-            "📈 Regresi Berganda",
-            "🔮 Forecasting"
-        ]
-        tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs(tab_titles)
-        
-        # --- TAB 1: OVERVIEW DATA ---
-        with tab1:
-            st.header("Overview Data")
-            col1, col2 = st.columns(2)
-            info = analysis.get_basic_info(df)
-            with col1:
-                st.metric("Jumlah Baris", info['rows'])
-                st.metric("Jumlah Kolom", info['columns'])
-            with col2:
-                st.metric("Total Missing Values", info['missing_values'])
-            st.subheader("Data Lengkap (Terfilter)")
-            st.dataframe(df, use_container_width=True)
-            with st.expander("Lihat Tipe Data Kolom"):
-                st.write(df.dtypes.astype(str))
-            if info['missing_values'] > 0:
-                st.subheader("Missing Values per Kolom")
-                st.write(info['missing_per_column'])
+        with c3:
+            st.markdown("""
+                <div style="line-height: 1.1; color: #1E3A8A; font-weight: 800; font-size: 13px; margin-top: 5px;">
+                    DISKOMINFO<br>LAMONGAN
+                </div>
+            """, unsafe_allow_html=True)
+    
+    selected = option_menu(
+        menu_title=None, 
+        options=["Overview", "Statistical Descriptive", "Grouping", "Simple Regression", "Multiple Regression", "Forecasting", "Contact Info"],
+        icons=["house", "clipboard-data", "people", "graph-up", "bar-chart-line", "clock-history", "key", "gear"],
+        menu_icon="cast",
+        default_index=0,
+        styles={
+            "container": {"padding": "0!important", "background-color": "#FFFFFF"},
+            "icon": {"color": "#1E3A8A", "font-size": "16px"}, 
+            "nav-link": {
+                "font-size": "14px", 
+                "text-align": "left", 
+                "margin":"0px", 
+                "color": "#334155", 
+                "--hover-color": "#EFF6FF"
+            },
+            "nav-link-selected": {
+                "background-color": "#EFF6FF", 
+                "color": "#2563EB", 
+                "font-weight": "600", 
+                "border-right": "3px solid #2563EB"
+            },
+        }
+    )
+   
+# --- HALAMAN ANALISIS ---
+# --- 1. OVERVIEW ---
+if selected == "Overview":
+    # Header
+    col_h1, col_h2 = st.columns([2, 1])
+    with col_h1:
+        st.markdown('<div class="main-header"> OVERVIEW DATA ANALYST TOOLS</div>', unsafe_allow_html=True)
+    with col_h2:
+        st.markdown(""" """, unsafe_allow_html=True)
 
-        # --- TAB 2: STATISTIK DESKRIPTIF ---
-        with tab2:
-            st.header("Statistik Deskriptif")
-            st.subheader("Ringkasan Statistik (Kolom Numerik)")
+    col_upload, col_metrics = st.columns([1.8, 1])
+    with col_upload:
+        st.markdown('<div class="section-title">Upload File</div>', unsafe_allow_html=True)
+        uploaded_file = st.file_uploader("Upload Data", type=['csv', 'xlsx', 'xls'], label_visibility="collapsed")
+        st.markdown('<div class="upload-footer" style="font-size:12px; margin-top:5px; text-align:center;">Make Sure the Input Data is in .csv, .xlsx, .xls format</div>', unsafe_allow_html=True)
+        if uploaded_file is not None:
+            df_loaded = loader.load_data(uploaded_file)
+            if df_loaded is not None:
+                st.session_state['df'] = df_loaded
+
+    # Metrics Box
+    with col_metrics:
+        st.markdown('<div class="section-title">Overview Data</div>', unsafe_allow_html=True)
+        
+        rows, cols, missing = 0, 0, 0
+        if st.session_state['df'] is not None:
+            info = analysis.get_basic_info(st.session_state['df'])
+            rows, cols, missing = info['rows'], info['columns'], info['missing_values']
+        
+        st.markdown(f"""
+        <div class="metric-container">
+            <div class="metric-item">
+                <div style="display:flex; align-items:center;">
+                    <div class="metric-icon-circle bg-blue">📄</div>
+                    <div class="metric-text">Count of Row</div>
+                </div>
+                <div class="metric-number">{rows}</div>
+            </div>
+            <div class="metric-item">
+                <div style="display:flex; align-items:center;">
+                    <div class="metric-icon-circle bg-blue">📊</div>
+                    <div class="metric-text">Count of Column</div>
+                </div>
+                <div class="metric-number">{cols}</div>
+            </div>
+            <div class="metric-item">
+                <div style="display:flex; align-items:center;">
+                    <div class="metric-icon-circle bg-blue">💲</div>
+                    <div class="metric-text">Missing Value</div>
+                </div>
+                <div class="metric-number">{missing}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+
+    # DataFrame Table
+    if st.session_state['df'] is not None:
+        df = st.session_state['df']
+        
+        st.markdown('<div class="statsdata-box" style="font-color: #FFFFFF;">Data Frame</div>', unsafe_allow_html=True)
+        st.dataframe(df, use_container_width=True, height=280)
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        # Bottom Cards
+        col_b1, col_b2 = st.columns(2)
+        
+        with col_b1:
+            st.markdown('<div class="statsdata-box" style="font-color: #FFFFFF;">Data Type</div>', unsafe_allow_html=True)
+            type_df = df.dtypes.astype(str).reset_index().rename(columns={0:'Type', 'index':'Column'})
+            st.dataframe(type_df, use_container_width=True, hide_index=True, height=250)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        with col_b2:
+            st.markdown('<div class="statsdata-box" style="font-color: #FFFFFF;">Missing Value</div>', unsafe_allow_html=True)
+            info = analysis.get_basic_info(df)
+            if info['missing_values'] > 0:
+                missing_df = info['missing_per_column'].reset_index().rename(columns={0:'Count', 'index':'Column'})
+                st.dataframe(missing_df, use_container_width=True, hide_index=True, height=250)
+            else:
+                st.info("✓ No missing values")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+# --- GLOBAL CHECK FOR OTHER TABS ---
+else:
+    if st.session_state['df'] is None:
+        st.warning("⚠️ Please Go to the **Overview** Menu and Upload Data First.")
+    else:
+        df = st.session_state['df']
+
+        # --- 2. STATISTIK DESKRIPTIF ---
+        if selected == "Statistical Descriptive":
+            col_h1, col_h2 = st.columns([2, 1])
+            with col_h1:
+                st.markdown('<div class="main-header">DESCRIPTIVE STATISTICS</div>', unsafe_allow_html=True)
+
+            st.markdown('<div class="statsdata-box" style="font-color: #FFFFFF;">Summary Statistics of Numerical Column</div>', unsafe_allow_html=True)
             stats = analysis.get_descriptive_stats(df)
             if not stats.empty:
                 st.dataframe(stats.style.format("{:.2f}"), use_container_width=True)
-                csv = stats.to_csv().encode('utf-8')
-                st.download_button("📥 Unduh Tabel Statistik (CSV)", csv, "statistik_deskriptif.csv", "text/csv", key='download-csv')
             else:
-                st.warning("Tidak ada kolom numerik ditemukan dalam data.")
-            st.subheader("Distribusi Frekuensi (Kolom Kategorikal)")
-            categorical_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
-            if categorical_cols:
-                selected_cat_col = st.selectbox("Pilih Kolom Kategorikal:", categorical_cols)
-                freq_dist = analysis.get_frequency_dist(df, selected_cat_col)
-                st.dataframe(freq_dist, use_container_width=True)
-            else:
-                st.info("Tidak ada kolom kategorikal ditemukan.")
+                st.warning("Numerical Columns Not Found.")
+            st.markdown('</div>', unsafe_allow_html=True)
 
-        # --- TAB 3: GROUPING/PIVOT ---
-        with tab3:
-            st.header("🧮 Grouping & Pivot Table")
-            st.markdown("Lakukan pengelompokan data berdasarkan kategori dan hitung nilai statistiknya.")
-            
+            st.markdown('<div class="statsdata-box" style="font-color: #FFFFFF;">Frequency Distribution of Categorical Column</div>', unsafe_allow_html=True)
+            cat_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
+            if cat_cols:
+                sel_cat = st.selectbox("Choose Column:", cat_cols)
+                freq = analysis.get_frequency_dist(df, sel_cat)
+                st.dataframe(freq, use_container_width=True)
+            else:
+                st.info("Categorical columns not found.")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+            # --- OUTLIER DETECTION ---
+            st.markdown('<div class="statsdata-box" style="font-color: #FFFFFF;">Outlier Detection</div>', unsafe_allow_html=True)
+            num_cols = df.select_dtypes(include=['number']).columns.tolist()
+            if num_cols:
+                sel_outlier = st.selectbox("Select Numeric Column:", num_cols, key='outlier_col')
+                
+                col_o1, col_o2 = st.columns([1.5, 1])
+                
+                with col_o1:
+                    st.plotly_chart(visualization.plot_box_chart(df, sel_outlier), use_container_width=True)
+                    
+                with col_o2:
+                    outlier_info = analysis.get_outliers_iqr(df, sel_outlier)
+                    st.write(f"**Outlier Summary:**")
+                    st.write(f"- Lower Bound: `{outlier_info['lower_bound']:.2f}`")
+                    st.write(f"- Upper Bound: `{outlier_info['upper_bound']:.2f}`")
+                    st.write(f"- Outlier Count: `{outlier_info['count']}`")
+                    
+                    if outlier_info['count'] > 0:
+                        with st.expander("View Outlier Data"):
+                            st.dataframe(outlier_info['data'], use_container_width=True)
+                    else:
+                        st.success("No Outliers Found.")
+            else:
+                st.info("No Numeric Columns to Analyze.")
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # --- 3. GROUPING ---
+        elif selected == "Grouping":
+            col_h1, col_h2 = st.columns([2, 1])
+            with col_h1:
+                st.markdown('<div class="main-header">GROUPING & PIVOT</div>', unsafe_allow_html=True)
+            with col_h2:
+                st.markdown(""" """, unsafe_allow_html=True)
+
             cat_cols = df.select_dtypes(include=['object', 'category']).columns.tolist()
             num_cols = df.select_dtypes(include=['number']).columns.tolist()
-            
+            g_cols = v_cols = agg = None
             if cat_cols and num_cols:
                 c1, c2, c3 = st.columns(3)
-                with c1: 
-                    g_cols = st.multiselect("Group By (Kategori):", cat_cols, default=[cat_cols[0]] if cat_cols else [], key='piv_g_multi')
-                with c2: 
-                    v_cols = st.multiselect("Value (Numerik):", num_cols, default=[num_cols[0]] if num_cols else [], key='piv_v_multi')
-                with c3: 
-                    agg_func = st.selectbox("Fungsi Agregasi:", ["mean", "sum", "count", "min", "max", "median"], key='piv_f_new')
-                
-                if st.button("Jalankan Grouping/Pivot", use_container_width=True):
+                with c1:
+                    g_cols = st.multiselect("Group By:", cat_cols)
+                with c2:
+                    v_cols = st.multiselect("Value:", num_cols)
+                with c3:
+                    agg = st.selectbox("Aggregation:", ["mean", "sum", "count", "min", "max"])
+                run_group = st.button("Click here to Run!", key="group-btn", use_container_width=True)
+                st.markdown("""
+                <style>
+                [data-testid="baseButton-secondary"][key="group-btn"] {
+                    background: linear-gradient(135deg, #28166f 0%, #0093dd 100%) !important;
+                    border: 1px solid #0c124e !important;
+                    color: white !important;
+                    border-radius: 12px !important;
+                    font-weight: 700 !important;
+                    font-size: 1.1rem !important;
+                    width: 100% !important;
+                    margin-top: 18px !important;
+                    padding: 0.8rem 0 !important;
+                    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+                }
+                </style>
+                """, unsafe_allow_html=True)
+                if run_group:
                     if g_cols and v_cols:
-                        # Melakukan grouping
-                        res = df.groupby(g_cols)[v_cols].agg(agg_func).reset_index()
-                        
-                        # Menampilkan hasil
-                        st.subheader(f"Hasil {agg_func.capitalize()}")
-                        st.dataframe(res, use_container_width=True)
-                        
-                        # Download button
-                        csv_res = res.to_csv(index=False).encode('utf-8')
-                        st.download_button("📥 Unduh Hasil Grouping (CSV)", csv_res, "hasil_grouping.csv", "text/csv", key='download-piv')
-                        
-                        # Visualisasi sederhana (ambil kolom pertama jika milih banyak)
-                        if len(g_cols) == 1 and len(v_cols) == 1:
-                            st.subheader("Visualisasi")
-                            fig_piv = visualization.plot_bar_chart(res, x_col=g_cols[0], y_col=v_cols[0])
-                            st.plotly_chart(fig_piv, use_container_width=True)
-                        elif len(g_cols) >= 1:
-                            st.info("💡 Pilih tepat 1 kolom Group By dan 1 kolom Value untuk melihat visualisasi grafik.")
+                        res = df.groupby(g_cols)[v_cols].agg(agg).reset_index()
+                        html_table = res.to_html(classes='blue-table', escape=False, index=False, float_format="{:.2f}".format)
+                        st.markdown(html_table, unsafe_allow_html=True)
+                        if len(g_cols)==1 and len(v_cols)==1:
+                            st.plotly_chart(visualization.plot_bar_chart(res, g_cols[0], v_cols[0]), use_container_width=True)
                     else:
-                        st.warning("Pilih minimal satu kolom Group By dan satu kolom Value.")
+                        st.warning("Select Group and Value.")
             else:
-                st.info("Butuh data kategori dan numerik untuk fitur grouping.")
+                st.info("Data Can't Be Used for Grouping.")
+            st.markdown('</div>', unsafe_allow_html=True)
 
-        # --- TAB 4: REGRESI SEDERHANA ---
-        with tab4:
-            st.header("📉 Analisis Regresi Linear Sederhana")
-            st.markdown("Memprediksi **1 Variabel Target (Y)** menggunakan **1 Variabel Bebas (X)**.")
-            numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
-            if len(numeric_cols) >= 2:
-                col_x, col_y = st.columns(2)
-                with col_x: x_col = st.selectbox("Pilih Variabel (X) - Penyebab:", numeric_cols, key='reg_simple_x')
-                with col_y: y_col = st.selectbox("Pilih Variabel (Y) - Akibat/Target:", numeric_cols, index=1 if len(numeric_cols)>1 else 0, key='reg_simple_y')
-                if x_col != y_col:
-                    if st.button("Jalankan Regresi Sederhana"):
-                        result = analysis.perform_linear_regression(df, x_col, y_col)
-                        if result:
-                            # --- A. UJI ASUMSI KLASIK ---
-                            st.subheader("A. Uji Asumsi Klasik")
+        # --- 4. SIMPLE REGRESSION ---
+        elif selected == "Simple Regression":
+            # --- HEADER ---
+            col_h1, col_h2 = st.columns([2, 1])
+            with col_h1:
+                st.markdown('<div class="main-header">SIMPLE REGRESSION</div>', unsafe_allow_html=True)
+            with col_h2:
+                st.markdown(""" """, unsafe_allow_html=True)
+                        
+            num_cols = df.select_dtypes(include=['number']).columns.tolist()
+            if len(num_cols) >= 2:
+                c1, c2 = st.columns(2)
+                x = c1.selectbox("X Variable:", num_cols, key='sr_x')
+                y = c2.selectbox("Y Variable:", num_cols, index=1, key='sr_y')
+                
+                if st.button("Calculate Simple Regression", use_container_width=True):
+                    res = analysis.perform_linear_regression(df, x, y)
+                    if res:
+                        st.success(f"Model: Y = {res['intercept']:.2f} + {res['slope']:.2f}X")
+                        st.metric("R-Squared", f"{res['r2']:.4f}")
+                        st.plotly_chart(visualization.plot_regression(res['X'], res['y'], res['y_pred'], x, y), use_container_width=True)
+            st.markdown('</div>', unsafe_allow_html=True)
+
+        # --- 5. MULTIPLE REGRESSION ---
+        elif selected == "Multiple Regression":
+            col_h1, col_h2 = st.columns([2, 1])
+            with col_h1:
+                st.markdown('<div class="main-header">MULTIPLE REGRESSION</div>', unsafe_allow_html=True)
+            with col_h2:
+                st.markdown(""" """, unsafe_allow_html=True)
                             
-                            # 1. Normalitas
-                            norm = analysis.check_normality(result['residuals'])
-                            norm_msg = "✅ Normal" if norm['is_normal'] else "❌ Tidak Normal"
+            num_cols = df.select_dtypes(include=['number']).columns.tolist()
+            if len(num_cols) >= 3:
+                y = st.selectbox("Target (Y):", num_cols, key='dr_y')
+                xs = st.multiselect("Variables (X):", [c for c in num_cols if c!=y], key='dr_x')
+                
+                if st.button("Calculate Multiple Regression", use_container_width=True):
+                    if xs:
+                        res = analysis.perform_multiple_regression(df, xs, y)
+                        if res:
+                            st.success(f"R-Squared (Koefisien Determinasi): {res['r2']:.4f}")
+                            st.info(f"💡 *Interpretasi R-Squared:* Nilai *{res['r2']:.4f}* menunjukkan bahwa *{res['r2']*100:.2f}%* variasi dari *{y}* dapat dijelaskan oleh variabel independen yang dipilih ({', '.join(xs)}). Sisanya sebesar *{100 - res['r2']*100:.2f}%* dijelaskan oleh faktor lain di luar model ini.")
                             
-                            # 4. Autokorelasi
-                            dw_val = analysis.check_autocorrelation(result['residuals'])
-                            dw_msg = "✅ Tidak ada autokorelasi" if 1.5 < dw_val < 2.5 else "⚠️ Terindikasi Autokorelasi"
+                            st.markdown("### Interpretation of the Slope Coefficient:")
+                            for col, val in res['coefficients'].items():
+                                direction = "naik" if val > 0 else "turun"
+                                st.write(f"- Setiap kenaikan 1 satuan *{col}, maka *{y}* diperkirakan akan *{direction}* sebesar *{abs(val):.4f}** (dengan asumsi variabel lain tetap).")
+                                
+                            st.markdown("### Evaluation Model (Actual vs Predicted)")
+                            st.plotly_chart(visualization.plot_actual_vs_predicted(res['y_actual'], res['y_pred']), use_container_width=True)
                             
-                            col_a1, col_a2, col_a3 = st.columns(3)
-                            col_a1.metric("1. Normalitas (Shapiro)", f"{norm['p_value']:.4f}", norm_msg)
-                            col_a2.metric("2. Autokorelasi (DW)", f"{dw_val:.3f}", dw_msg)
-                            
-                            # Interpretasi Asumsi
-                            st.caption(f"💡 **Interpretasi**: Residual {'**berdistribusi normal**' if norm['is_normal'] else '**tidak normal**'} (P > 0.05). {'Tidak ada masalah autokorelasi' if 1.5 < dw_val < 2.5 else 'Ada indikasi autokorelasi'} pada data.")
-                            
-                            # Visualisasi Asumsi
-                            with st.expander("Lihat Plot Asumsi"):
-                                tab_viz_1, tab_viz_2 = st.tabs(["Normalitas", "Linieritas/Fit"])
-                                with tab_viz_1:
-                                    import plotly.figure_factory as ff
-                                    fig_norm = ff.create_distplot([result['residuals']], ['Residuals'], bin_size=0.2, show_rug=False)
-                                    st.plotly_chart(fig_norm, use_container_width=True)
-                                with tab_viz_2:
-                                    fig_reg = visualization.plot_regression(result['X'], result['y'], result['y_pred'], x_col, y_col)
-                                    st.plotly_chart(fig_reg, use_container_width=True)
+                            with st.expander("Check Coefficient Values"):
+                                st.write(res['coefficients'])
+            st.markdown('</div>', unsafe_allow_html=True)
 
-                            # --- B. UJI SIGNIFIKANSI ---
-                            st.subheader("B. Uji Signifikansi")
-                            
-                            # 1. Uji F
-                            f_msg = "✅ Model Layak (Signifikan)" if result['f_pvalue'] < 0.05 else "❌ Model Tidak Layak"
-                            st.write(f"**1. Uji F (Kecocokan Model)**: F-Stat = {result['f_value']:.4f}, Prob(F) = {result['f_pvalue']:.4e} -> {f_msg}")
-                            st.caption(f"💡 **Interpretasi**: Variabel independen **{'secara simultan berpengaruh signifikan' if result['f_pvalue'] < 0.05 else 'tidak berpengaruh signifikan'}** terhadap variabel dependen.")
-                            
-                            # 2. Uji t (Parameter)
-                            st.write("**2. Uji t (Signifikansi Parameter)**")
-                            t_df = pd.DataFrame({
-                                "Koefisien": [result['intercept'], result['slope']],
-                                "t-Stat": [result['t_values']['const'], result['t_values'][x_col]],
-                                "P-Value": [result['p_values']['const'], result['p_values'][x_col]],
-                                "Kesimpulan": ["Signifikan" if result['p_values']['const'] < 0.05 else "-", 
-                                               "Signifikan" if result['p_values'][x_col] < 0.05 else "Tidak Signifikan"]
-                            }, index=["Intercept (a)", f"Slope ({x_col})"])
-                            st.dataframe(t_df, use_container_width=True)
-                            if result['p_values'][x_col] < 0.05:
-                                st.caption(f"💡 **Interpretasi**: Variabel **{x_col}** memiliki pengaruh yang **signifikan** terhadap **{y_col}**.")
-                            else:
-                                st.caption(f"💡 **Interpretasi**: Variabel **{x_col}** **tidak** berpengaruh signifikan terhadap **{y_col}**.")
+        # --- 6. FORECASTING ---
+        elif selected == "Forecasting":
+            col_h1, col_h2 = st.columns([2, 1])
+            with col_h1:
+                st.markdown('<div class="main-header">FORECASTING</div>', unsafe_allow_html=True)
+            with col_h2:
+                st.markdown(""" """, unsafe_allow_html=True)
 
-                            # --- C. MODEL AKHIR ---
-                            st.subheader("C. Model Akhir")
-                            st.info(f"**Y = {result['intercept']:.4f} + {result['slope']:.4f} * {x_col}**")
-
-                            # --- D. KOEFISIEN DETERMINASI ---
-                            st.subheader("D. Koefisien Determinasi")
-                            cd1, cd2 = st.columns(2)
-                            cd1.metric("R-Squared", f"{result['r2']:.4f}", help="Menjelaskan seberapa besar pengaruh X terhadap Y")
-                            cd2.metric("Adj. R-Squared", f"{result['adj_r2']:.4f}")
-                            st.caption(f"💡 **Interpretasi**: Variabel independen mampu menjelaskan **{result['r2']*100:.2f}%** perubahan pada variabel **{y_col}**. Sisanya dijelaskan oleh faktor lain diluar model.")
-
-                            # --- E. MSE ---
-                            st.subheader("E. MSE (Mean Squared Error)")
-                            st.metric("MSE", f"{result['mse']:.4f}")
-
-                        else: st.error("Gagal melakukan analisis. Data mungkin kurang atau terjadi error numerik.")
-                else: st.warning("Variabel X dan Y harus berbeda.")
-            else: st.info("Butuh minimal 2 kolom numerik.")
-
-        # --- TAB 5: REGRESI BERGANDA ---
-        with tab5:
-            st.header("📈 Analisis Regresi Linear Berganda")
-            st.markdown("Memprediksi **1 Y** menggunakan **Banyak X**.")
-            numeric_cols = df.select_dtypes(include=['number']).columns.tolist()
-            if len(numeric_cols) >= 3:
-                y_col_multi = st.selectbox("Pilih Variabel Target (Y):", numeric_cols, key='reg_multi_y')
-                candidate_x = [c for c in numeric_cols if c != y_col_multi]
-                x_cols_multi = st.multiselect("Pilih Variabel Bebas (X):", candidate_x, key='reg_multi_x')
-                if x_cols_multi:
-                    if st.button("Jalankan Regresi Berganda"):
-                        result = analysis.perform_multiple_regression(df, x_cols_multi, y_col_multi)
-                        if result:
-                            # --- A. UJI ASUMSI KLASIK ---
-                            st.subheader("A. Uji Asumsi Klasik")
-                            
-                            # Hitung Asumsi
-                            resid = result['residuals']
-                            norm = analysis.check_normality(resid)
-                            bp = analysis.check_homoscedasticity(resid, result['X_with_const'])
-                            dw_val = analysis.check_autocorrelation(resid)
-                            vif_df = analysis.calculate_vif(result['X'])
-
-                            # Tampilkan Ringkasan Asumsi
-                            col_as1, col_as2, col_as3, col_as4 = st.columns(4)
-                            col_as1.metric("1. Normalitas (P)", f"{norm['p_value']:.4f}", "Normal" if norm['is_normal'] else "Tidak Normal")
-                            col_as2.metric("2. Linieritas", "Cek Plot", "Resid vs Pred")
-                            col_as3.metric("3. Homoskedastis (P)", f"{bp['p_value']:.4f}", "Ya" if bp['is_homoscedastic'] else "Tidak")
-                            col_as4.metric("4. Autokorelasi", f"{dw_val:.3f}", "Aman" if 1.5 < dw_val < 2.5 else "Warning")
-                            
-                            # Interpretasi Asumsi Lengkap
-                            assump_text = []
-                            assump_text.append(f"- Data {'**berdistribusi normal**' if norm['is_normal'] else '**tidak normal**'}.")
-                            assump_text.append(f"- Varians error {'**konstan (Homoskedastis)**' if bp['is_homoscedastic'] else '**tidak konstan (Heteroskedastis)**'}.")
-                            assump_text.append(f"- {'**Tidak ada**' if 1.5 < dw_val < 2.5 else '**Ada indikasi**'} masalah autokorelasi.")
-                            st.info("💡 **Ringkasan Asumsi**:\n" + "\n".join(assump_text))
-                            
-                            with st.expander("5. Uji Multikolinieritas (VIF)"):
-                                st.dataframe(vif_df, use_container_width=True)
-                                st.caption("Jika VIF > 10, indikasi kuat multikolinearitas.")
-
-                            # Evaluasi Visual
-                            with st.expander("Plot Visualisasi Asumsi"):
-                                import plotly.express as px
-                                fig_resid_fit = px.scatter(x=result['y_pred'], y=resid, labels={'x':'Predicted', 'y':'Residuals'}, title="Uji Linieritas & Homoskedastisitas (Pattern)")
-                                fig_resid_fit.add_hline(y=0, line_dash="dash", line_color="red")
-                                st.plotly_chart(fig_resid_fit, use_container_width=True)
-
-                            # --- B. UJI SIGNIFIKANSI ---
-                            st.subheader("B. Uji Signifikansi")
-                            
-                            # 1. Uji F
-                            f_msg = "✅ Model Layak (Signifikan)" if result['f_pvalue'] < 0.05 else "❌ Model Tidak Layak"
-                            st.write(f"**1. Uji F (Simultan)**: F-Stat = {result['f_value']:.4f}, Prob(F) = {result['f_pvalue']:.4e} -> {f_msg}")
-                            st.caption(f"💡 **Interpretasi**: Secara bersama-sama (simultan), variabel independen **{'berpengaruh signifikan' if result['f_pvalue'] < 0.05 else 'tidak berpengaruh signifikan'}** terhadap **{y_col_multi}**.")
-                            
-                            # 2. Uji t (Parsial)
-                            st.write("**2. Uji t (Parsial/Parameter)**")
-                            # Buat dataframe ringkasan t test
-                            coefs_data = []
-                            # Intercept
-                            coefs_data.append({
-                                "Variabel": "Intercept (Konstanta)",
-                                "Koefisien": result['intercept'],
-                                "t-Stat": result['t_values']['const'],
-                                "P-Value": result['p_values']['const'],
-                                "Kesimpulan": "Signifikan" if result['p_values']['const'] < 0.05 else "Tidak"
-                            })
-                            # Variabel Lain
-                            for col in x_cols_multi:
-                                coefs_data.append({
-                                    "Variabel": col,
-                                    "Koefisien": result['coefficients'][col],
-                                    "t-Stat": result['t_values'][col],
-                                    "P-Value": result['p_values'][col],
-                                    "Kesimpulan": "Signifikan" if result['p_values'][col] < 0.05 else "Tidak"
-                                })
-                            st.dataframe(pd.DataFrame(coefs_data), use_container_width=True)
-                            
-                            # Interpretasi T
-                            sig_vars = [col for col in x_cols_multi if result['p_values'][col] < 0.05]
-                            if sig_vars:
-                                st.caption(f"💡 **Interpretasi**: Variabel **{', '.join(sig_vars)}** memiliki pengaruh signifikan terhadap **{y_col_multi}**.")
-                            else:
-                                st.caption("💡 **Interpretasi**: Tidak ada variabel independen yang berpengaruh signifikan secara parsial.")
-
-                            # --- C. MODEL AKHIR ---
-                            st.subheader("C. Model Akhir")
-                            equation = f"Y = {result['intercept']:.4f}"
-                            for var, koef in result['coefficients'].items(): 
-                                equation += f" {'+' if koef>=0 else '-'} {abs(koef):.4f}({var})"
-                            st.info(f"**{equation}**")
-
-                            # --- D. KOEFISIEN DETERMINASI ---
-                            st.subheader("D. Koefisien Determinasi")
-                            cd1, cd2 = st.columns(2)
-                            cd1.metric("R-Squared", f"{result['r2']:.4f}")
-                            cd2.metric("Adj. R-Squared", f"{result['adj_r2']:.4f}")
-                            st.caption(f"💡 **Interpretasi**: Variabel independen yang digunakan mampu menjelaskan **{result['r2']*100:.2f}%** variasi pada variabel **{y_col_multi}**.")
-
-                            # --- E. MSE ---
-                            st.subheader("E. MSE (Mean Squared Error)")
-                            st.metric("MSE", f"{result['mse']:.4f}")
-
-                        else: st.error("Gagal melakukan analisis. Pastikan data mencukupi.")
-                else: st.warning("Pilih minimal satu variabel X.")
-            else: st.info("Butuh minimal 3 kolom numerik.")
-
-        # --- TAB 6: FORECASTING ---
-        with tab6:
-            st.header("🔮 Time Series Forecasting")
-            st.markdown("Memprediksi nilai masa depan berdasarkan tren historis.")
-            
-            # Identifikasi kolom potensial
             all_cols = df.columns.tolist()
             num_cols = df.select_dtypes(include=['number']).columns.tolist()
-             
-            col_f1, col_f2 = st.columns(2)
-            with col_f1: 
-                time_col = st.selectbox("Pilih Kolom Waktu (Tahun/Periode):", all_cols, key='fc_time', index=all_cols.index('Tahun') if 'Tahun' in all_cols else 0)
-            with col_f2: 
-                target_col = st.selectbox("Pilih Target Data:", num_cols, key='fc_target')
             
-            col_f3, col_f4 = st.columns(2)
-            with col_f3:
-                method = st.selectbox("Metode Forecasting:", ["Holt's Linear Trend", "Backpropagation (Neural Network)"], key='fc_method')
-            with col_f4:
-                steps = st.slider("Jumlah Periode Prediksi:", min_value=1, max_value=10, value=5)
+            c1, c2 = st.columns(2)
+            time_col = c1.selectbox("Time Column:", all_cols)
+            target = c2.selectbox("Target:", num_cols)
+            method = st.selectbox("Method:", ["Holt's Linear Trend", "Backpropagation"])
+            steps = st.slider("Periods:", 1, 10, 5)
             
-            if st.button("Jalankan Forecasting"):
-                if time_col and target_col:
-                    with st.spinner(f"Menjalankan forecasting dengan {method}..."):
-                        if method == "Holt's Linear Trend":
-                            fc_res = analysis.perform_forecasting(df, time_col, target_col, periods=steps)
-                        else:
-                            fc_res = analysis.perform_backpropagation_forecasting(df, time_col, target_col, periods=steps)
-                        
-                    if fc_res:
-                        st.success(f"Berhasil memprediksi {target_col} untuk {steps} periode ke depan menggunakan {method}.")
-                        
-                        # MSE Metric
-                        st.metric("MSE (Mean Squared Error)", f"{fc_res['mse']:.4f}", help="Semakin kecil nilai MSE, semakin akurat model dalam mencocokkan data historis.")
-                        
-                        st.write(f"**Interpretasi MSE:** Nilai MSE sebesar **{fc_res['mse']:.4f}** menunjukkan rata-rata kuadrat selisih antara data aktual dan estimasi model. Dalam konteks ini, angka tersebut merupakan indikator seberapa besar penyimpangan prediksi terhadap data asli. **Semakin mendekati nol**, semakin presisi model tersebut menangkap pola data masa lalu.")
-                        
-                        # Plot
-                        fig_fc = visualization.plot_forecast(fc_res['history'], fc_res['forecast'], time_col, target_col)
-                        st.plotly_chart(fig_fc, use_container_width=True)
-                        
-                        # Tabel
-                        st.subheader("Tabel Hasil Prediksi")
-                        st.dataframe(fc_res['forecast'].style.format({'Forecast': "{:.2f}"}), use_container_width=True)
-                        
-                        # Insight Sederhana
-                        end_hist = fc_res['history'][target_col].iloc[-1]
-                        end_pred = fc_res['forecast']['Forecast'].iloc[-1]
-                        
-                        total_growth = ((end_pred - end_hist) / end_hist) * 100
-                        st.info(f"💡 **Insight**: Dari data terakhir ({end_hist:.2f}) ke prediksi akhir ({end_pred:.2f}), diprediksi terjadi {'kenaikan' if total_growth > 0 else 'penurunan'} sebesar **{abs(total_growth):.2f}%**.")
-                        
-                    else:
-                        st.error("Gagal melakukan forecasting. Pastikan kolom waktu valid (angka tahun) dan data cukup.")
+            if st.button("Forecast", use_container_width=True):
+                if method == "Holt's Linear Trend":
+                    res = analysis.perform_forecasting(df, time_col, target, periods=steps)
                 else:
-                    st.warning("Pilih kolom waktu dan target.")
+                    res = analysis.perform_backpropagation_forecasting(df, time_col, target, periods=steps)
+                
+                if res:
+                    st.plotly_chart(visualization.plot_forecast(res['history'], res['forecast'], time_col, target), use_container_width=True)
+                    st.dataframe(res['forecast'])
+            st.markdown('</div>', unsafe_allow_html=True)
 
-else:
-    st.info("Silakan unggah file di atas untuk memulai analisis.")
+        # --- 7. CONTACT INFO ---
+        elif selected == "Contact Info":
+            st.markdown('<div class="main-header">CONTACT INFO & FAQ</div>', unsafe_allow_html=True)
+            
+            # Kalimat pengantar Bahasa Inggris
+            st.markdown("""
+                <p style="color: #64748B; font-size: 16px; margin-bottom: 30px;">
+                    If you have any questions or concerns, feel free to contact one of the following developers.
+                </p>
+            """, unsafe_allow_html=True)
+            
+            # Membuat layout 50% - 50% untuk dua developer
+            col_dev1, col_dev2 = st.columns([1, 1])
+            
+            subject = "Diskominfo Data Tool Inquiry"
+            
+            with col_dev1:
+                mail_sinta = f"mailto:sinta@example.com?subject={subject.replace(' ', '%20')}"
+                st.markdown(f"""
+                <div class="contact-card">
+                    <div style="font-size: 50px; text-align: center;">👩‍💻</div>
+                    <h3 style="text-align: center; color: #1E3A8A; margin-top:7px; margin-bottom: 1px;">Sinta Dewi Rahmawati</h3>
+                    <a href="{mail_sinta}" class="email-btn">Contact Here</a>
+                </div>
+                """, unsafe_allow_html=True)
+
+            with col_dev2:
+                mail_zaki = f"mailto:zaki@example.com?subject={subject.replace(' ', '%20')}"
+                st.markdown(f"""
+                <div class="contact-card">
+                    <div style="font-size: 50px; text-align: center;">👨‍💻</div>
+                    <h3 style="text-align: center; color: #1E3A8A; margin-top:7px; margin-bottom: 1px;">Zaki Siapa Nama Panjangmu</h3>
+                    <a href="{mail_zaki}" class="email-btn">Contact Here</a>
+                </div>
+                """, unsafe_allow_html=True)

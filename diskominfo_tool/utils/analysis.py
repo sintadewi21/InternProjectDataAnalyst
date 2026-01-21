@@ -8,6 +8,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.neural_network import MLPRegressor
 from sklearn.preprocessing import StandardScaler
 import numpy as np
+from scipy import stats
 
 def check_normality(residuals):
     """
@@ -470,3 +471,26 @@ def get_frequency_dist(df, column):
     freq = df[column].value_counts().reset_index()
     freq.columns = [column, 'Frekuensi']
     return freq
+
+def get_outliers_iqr(df, column):
+    """
+    Mendeteksi outlier menggunakan metode IQR.
+    """
+    if df is None or column not in df.columns:
+        return pd.DataFrame()
+        
+    Q1 = df[column].quantile(0.25)
+    Q3 = df[column].quantile(0.75)
+    IQR = Q3 - Q1
+    
+    lower_bound = Q1 - 1.5 * IQR
+    upper_bound = Q3 + 1.5 * IQR
+    
+    outliers = df[(df[column] < lower_bound) | (df[column] > upper_bound)].copy()
+    
+    return {
+        'data': outliers,
+        'lower_bound': lower_bound,
+        'upper_bound': upper_bound,
+        'count': len(outliers)
+    }
