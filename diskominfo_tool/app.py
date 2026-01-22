@@ -50,7 +50,7 @@ with st.sidebar:
     
     selected = option_menu(
         menu_title=None, 
-        options=["Overview", "Statistical Descriptive", "Grouping", "Simple Regression", "Multiple Regression", "Forecasting", "Contact Info"],
+        options=["Overview", "Descriptive Statistics", "Grouping", "Simple Regression", "Multiple Regression", "Forecasting", "Contact Info"],
         icons=["house", "clipboard-data", "people", "graph-up", "bar-chart-line", "clock-history", "key", "gear"],
         menu_icon="cast",
         default_index=0,
@@ -163,7 +163,7 @@ else:
         df = st.session_state['df']
 
         # --- 2. STATISTIK DESKRIPTIF ---
-        if selected == "Statistical Descriptive":
+        if selected == "Descriptive Statistics":
             col_h1, col_h2 = st.columns([2, 1])
             with col_h1:
                 st.markdown('<div class="main-header">DESCRIPTIVE STATISTICS</div>', unsafe_allow_html=True)
@@ -273,6 +273,7 @@ else:
                         
             num_cols = df.select_dtypes(include=['number']).columns.tolist()
             if len(num_cols) >= 2:
+                st.info("💡 **Penjelasan Variabel:**\n- **Variabel X (Independen)**: Variabel yang *mempengaruhi* .\n- **Variabel Y (Dependen)**: Variabel yang *dipengaruhi*.")
                 c1, c2 = st.columns(2)
                 x = c1.selectbox("X Variable:", num_cols, key='sr_x')
                 y = c2.selectbox("Y Variable:", num_cols, index=1, key='sr_y')
@@ -281,8 +282,22 @@ else:
                     res = analysis.perform_linear_regression(df, x, y)
                     if res:
                         st.success(f"Model: Y = {res['intercept']:.2f} + {res['slope']:.2f}X")
-                        st.metric("R-Squared", f"{res['r2']:.4f}")
+                        
+                        # Interpretasi R2
+                        st.metric("R-Squared (Koefisien Determinasi)", f"{res['r2']:.4f}")
+                        st.info(f"💡 *Interpretasi R-Squared:* Nilai *{res['r2']:.4f}* menunjukkan bahwa *{res['r2']*100:.2f}%* variasi dari **{y}** dapat dijelaskan oleh **{x}**. Sisanya sebesar *{100 - res['r2']*100:.2f}%* dijelaskan oleh faktor lain di luar model ini.")
+
+                        # Interpretasi Koefisien
+                        st.markdown("### Interpretation of the Slope Coefficient")
+                        direction = "naik" if res['slope'] > 0 else "turun"
+                        st.write(f"- Setiap kenaikan 1 satuan **{x}**, maka **{y}** diperkirakan akan **{direction}** sebesar **{abs(res['slope']):.4f}** (dengan asumsi faktor lain tetap).")
+
+                        # Plot Regresi
                         st.plotly_chart(visualization.plot_regression(res['X'], res['y'], res['y_pred'], x, y), use_container_width=True)
+                        
+                        # Plot Actual vs Predicted (Tambahan agar sama dengan multiple)
+                        st.markdown("### Evaluation Model (Actual vs Predicted)")
+                        st.plotly_chart(visualization.plot_actual_vs_predicted(res['y'], res['y_pred']), use_container_width=True)
             st.markdown('</div>', unsafe_allow_html=True)
 
         # --- 5. MULTIPLE REGRESSION ---
@@ -295,8 +310,9 @@ else:
                             
             num_cols = df.select_dtypes(include=['number']).columns.tolist()
             if len(num_cols) >= 3:
-                y = st.selectbox("Target (Y):", num_cols, key='dr_y')
-                xs = st.multiselect("Variables (X):", [c for c in num_cols if c!=y], key='dr_x')
+                st.info("💡 **Penjelasan Variabel:**\n- **Variabel X (Independen)**: Variabel yang *mempengaruhi* .\n- **Variabel Y (Dependen)**: Variabel yang *dipengaruhi*.")
+                y = st.selectbox("Target (Y) - Yang Dipengaruhi:", num_cols, key='dr_y')
+                xs = st.multiselect("Variables (X) - Yang Mempengaruhi:", [c for c in num_cols if c!=y], key='dr_x')
                 
                 if st.button("Calculate Multiple Regression", use_container_width=True):
                     if xs:
@@ -376,7 +392,7 @@ else:
                 st.markdown(f"""
                 <div class="contact-card">
                     <div style="font-size: 50px; text-align: center;">👨‍💻</div>
-                    <h3 style="text-align: center; color: #1E3A8A; margin-top:7px; margin-bottom: 1px;">Zaki Siapa Nama Panjangmu</h3>
+                    <h3 style="text-align: center; color: #1E3A8A; margin-top:7px; margin-bottom: 1px;">Ahmad Zaidan Ad Dimasyqie</h3>
                     <a href="{mail_zaki}" class="email-btn">Contact Here</a>
                 </div>
                 """, unsafe_allow_html=True)
